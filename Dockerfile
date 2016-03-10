@@ -2,43 +2,40 @@
 # updateted sections are: 
 # "Processwire Dowload Part"
 
-FROM php:5.6-apache
+FROM nginx:latest
 
-RUN a2enmod rewrite expires
-
-# install the PHP extensions we need
-RUN apt-get update && apt-get install -y libpng12-dev libjpeg-dev && rm -rf /var/lib/apt/lists/* \
-	&& docker-php-ext-configure gd --with-png-dir=/usr --with-jpeg-dir=/usr \
-	&& docker-php-ext-install gd mysqli opcache
+MAINTAINER kreativmonkey <webmaster@calyrium.org>
 
 # set recommended PHP.ini settings
 # see https://secure.php.net/manual/en/opcache.installation.php
-RUN { \
-		echo 'opcache.memory_consumption=128'; \
-		echo 'opcache.interned_strings_buffer=8'; \
-		echo 'opcache.max_accelerated_files=4000'; \
-		echo 'opcache.revalidate_freq=60'; \
-		echo 'opcache.fast_shutdown=1'; \
-		echo 'opcache.enable_cli=1'; \
-	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
+#RUN { \
+#		echo 'opcache.memory_consumption=128'; \
+#		echo 'opcache.interned_strings_buffer=8'; \
+#		echo 'opcache.max_accelerated_files=4000'; \
+#		echo 'opcache.revalidate_freq=60'; \
+#		echo 'opcache.fast_shutdown=1'; \
+#		echo 'opcache.enable_cli=1'; \
+#	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
-VOLUME /var/www/html
+VOLUME /usr/share/nginx/
 
+RUN apt-get update && apt-get -y upgrade \
+	&& apt-get install -y pwgen curl unzip php5-fpm php5-mysql php-apc php5-cli \
+	 	php5-curl php5-gd php5-mcrypt php5-intl php5-imap php5-tidy php5-imagick \
+		php5-memcache php5-xmlrpc php5-xsl php5-mysql 
 
-# Processwire Download Part
-ENV PROCESSWIRE_VERSION 2.7.2
+ADD nginx.conf /etc/nginx/nginx.conf
+
+# Download Processwire, check and install
 ENV PROCESSWIRE_STACKE master
 ENV PROCESSWIRE_SHA1 bfde25a27432509dd060ff39a4e5aa8a71666fac
+ENV NGINX_PATH /usr/share/nginx
 
-# upstream tarballs include ./wordpress/ so this gives us /usr/src/wordpress
 RUN curl -o processwire.zip -SL https://github.com/ryancramerdesign/ProcessWire/archive/${PROCESSWIRE_STACKE}.zip \
 	&& echo "$PROCESSWIRE_SHA1 *processwire.zip" | sha1sum -c - \
-	&& unzip processwire.zip /usr/src/ \
+	&& unzip processwire.zip -d ${NGINX_PATH}/ \
 	&& rm processwire.zip \
-	&& chown -R www-data:www-data /usr/src/processwire
-
-COPY docker-entrypoint.sh /entrypoint.sh
-
-# grr, ENTRYPOINT resets CMD now
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["apache2-foreground"]
+	&& mv ${NGINX_PATH}/ProcessWire-${PROCESSWIRE_STACKE} ${NGINX_PATH}/www \
+	&& mv ${NGINX_PATH}/www/site-beginner ${NGINX_PATH}/www/site \
+	&& rm -rf ${NGINX_PATH}/www/site-* \
+	&& chown -R www-data:www-data ${NGINX_PATH}/www
