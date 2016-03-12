@@ -17,7 +17,6 @@ MAINTAINER kreativmonkey <webmaster@calyrium.org>
 #		echo 'opcache.enable_cli=1'; \
 #	} > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
-VOLUME /usr/share/nginx/
 
 RUN apt-get update && apt-get -y upgrade \
 	&& apt-get install -y pwgen curl unzip php5-fpm php5-mysql php-apc php5-cli \
@@ -29,13 +28,15 @@ ADD nginx.conf /etc/nginx/nginx.conf
 # Download Processwire, check and install
 ENV PROCESSWIRE_STACKE master
 ENV PROCESSWIRE_SHA1 bfde25a27432509dd060ff39a4e5aa8a71666fac
-ENV NGINX_PATH /usr/share/nginx
+ENV WEB_PATH /usr/share/nginx/www
 
 RUN curl -o processwire.zip -SL https://github.com/ryancramerdesign/ProcessWire/archive/${PROCESSWIRE_STACKE}.zip \
 	&& echo "$PROCESSWIRE_SHA1 *processwire.zip" | sha1sum -c - \
-	&& unzip processwire.zip -d ${NGINX_PATH}/ \
+	&& unzip processwire.zip -d ${WEB_PATH}/ \
 	&& rm processwire.zip \
-	&& mv ${NGINX_PATH}/ProcessWire-${PROCESSWIRE_STACKE} ${NGINX_PATH}/www \
-	&& mv ${NGINX_PATH}/www/site-beginner ${NGINX_PATH}/www/site \
-	&& rm -rf ${NGINX_PATH}/www/site-* \
-	&& chown -R www-data:www-data ${NGINX_PATH}/www
+	&& mv ${WEB_PATH}/ProcessWire-${PROCESSWIRE_STACKE} ${WEB_PATH} \
+	&& mv ${WEB_PATH}/site-beginner ${WEB_PATH}/site \
+	&& rm -rf ${WEB_PATH}/www/site-* \
+	&& chown -R www-data:www-data ${WEB_PATH}
+
+VOLUME ${WEB_PATH}/site
