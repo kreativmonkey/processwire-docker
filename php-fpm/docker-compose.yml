@@ -1,0 +1,21 @@
+db:
+ image: mysql
+ environment:
+  MYSQL_DATABASE: pw
+  MYSQL_ROOT_PASSWORD: pwtest
+
+processwire:
+ image: kreativmonkey/processwire:master 
+ links:
+  - db:mysql
+
+web:
+ image: nginx
+ volumes:
+  - ./nginx.conf:/etc/nginx/nginx.conf:ro
+ links:
+  - processwire
+ volumes_from:
+  - processwire
+ ports:
+  - 80
